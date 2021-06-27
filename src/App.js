@@ -1,25 +1,75 @@
-import logo from './logo.svg';
-import './App.css';
-
+import React, { Fragment, useState, useEffect } from 'react';
+import axios from 'axios';
+ 
+const useDataApi = (initialUrl, initialData) => {
+  const [data, setData] = useState(initialData);
+  const [url, setUrl] = useState(initialUrl);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isError, setIsError] = useState(false);
+ 
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsError(false);
+      setIsLoading(true);
+ 
+      try {
+        const result = await axios(url);
+ 
+        setData(result.data);
+      } catch (error) {
+        setIsError(true);
+      }
+ 
+      setIsLoading(false);
+    };
+ 
+    fetchData();
+  }, [url]);
+ 
+  return [{ data, isLoading, isError }, setUrl];
+};
+ 
 function App() {
+  const [query, setQuery] = useState('Search For News');
+  const [{ data, isLoading, isError }, doFetch] = useDataApi(
+    'https://hn.algolia.com/api/v1/search?query=axios',
+    { hits: [] },
+  );
+ 
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Fragment>
+      <form 
+        onSubmit={event => {
+          doFetch(
+            `http://hn.algolia.com/api/v1/search?query=${query}`,
+          );
+ 
+          event.preventDefault();
+        }}
+      >
+        <input
+          type="text"
+          value={query}
+          onChange={event => setQuery(event.target.value)}
+        />
+        <button type="submit">Search</button>
+      </form>
+      
+      {isError && <div>Something went wrong ...</div>}
+ 
+      {isLoading ? (
+        <div>Loading ...</div>
+      ) : (
+        <ul>
+          {data.hits.map(item => (
+            <li key={item.objectID}>
+              <a href={item.url}>{item.title}</a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Fragment>
   );
 }
-
+ 
 export default App;
